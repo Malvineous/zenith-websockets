@@ -1,0 +1,22 @@
+{
+  "name": "zenith-websockets",
+  "version": "0.1.0",
+  "description": "Interface to OpenMarkets/Paritech Zenith WebSockets API",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Malvineous/zenith-websockets.git"
+  },
+  "keywords": [
+    "trading"
+  ],
+  "author": "Adam Nielsen <malvineous@shikadi.net>",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/Malvineous/zenith-websockets/issues"
+  },
+  "homepage": "https://github.com/Malvineous/zenith-websockets#readme"
+}
