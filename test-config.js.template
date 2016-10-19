@@ -1,0 +1,7 @@
+// Place the credentials here to use when running the tests.
+module.exports = {
+	clientId: 'my-client-id',
+	clientSecret: 'my-client-secret',
+	username: 'my-username',
+	password: 'my-password',
+};
