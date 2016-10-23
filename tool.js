@@ -14,6 +14,9 @@ class Actions
 	}
 
 	list_accounts(promise, params) {
+		if (!promise) {
+			return [];
+		}
 		return promise.then(() => {
 			return this.zenith.trading_queryAccounts()
 				.then(accounts => {
@@ -25,6 +28,10 @@ class Actions
 	}
 
 	list_orders(promise, params) {
+		if (!promise) {
+			return ['account-id'];
+		}
+
 		let idAccount = params.shift();
 		if (!idAccount) {
 			throw Error('Need account ID to list orders.');
@@ -81,6 +88,10 @@ class Actions
 	}
 
 	cancel_order(promise, params) {
+		if (!promise) {
+			return ['account-id', 'order-id'];
+		}
+
 		let idAccount = params.shift();
 		if (!idAccount) {
 			throw Error('Need account ID of order to cancel.');
@@ -103,7 +114,18 @@ class Actions
 	}
 };
 
-let args = parseArgs(process.argv.slice(2), {boolean: ['d']});
+let args = parseArgs(process.argv.slice(2), {boolean: ['d', 'h']});
+
+if (args.h || (args._.length == 0)) { // help
+	console.log('Command line interface to Zenith API.\n')
+	console.log('Usage: node tool.js action1 param1 action2 ...\n');
+	console.log('Actions:');
+	Object.getOwnPropertyNames(Actions.prototype).sort().forEach(d => {
+		if (d == 'constructor') return;
+		console.log('  ' + d + '\t' + Actions.prototype[d]().join(' '));
+	});
+	process.exit(0);
+}
 
 let zenith = new Zenith.WebSockets(config);
 if (args.d) zenith.debug = true;
