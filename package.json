@@ -21,6 +21,7 @@
   "homepage": "https://github.com/Malvineous/zenith-websockets#readme",
   "dependencies": {
     "client-oauth2": "^3.0.1",
+    "minimist": "^1.2.0",
     "ws": "^1.1.1"
   }
 }
