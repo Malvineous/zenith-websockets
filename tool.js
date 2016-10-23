@@ -146,6 +146,7 @@ zenith.connect().then(() => {
 			p = a[action](p, actions);
 		} catch (e) {
 			// Immediate error (e.g. missing params)
+			console.log('Use: ' + action + ' ' + a[action]().join(' ') + '\n');
 			console.log(action + ' error: ' + e.message);
 			zenith.disconnect();
 			process.exit(1);
