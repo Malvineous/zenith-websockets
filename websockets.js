@@ -6,6 +6,7 @@ let ZenithError = require('./error.js');
 
 const PING_TIMEOUT_MS = 30000;
 const CALL_TIMEOUT_MS = 10000;
+const SUB_PING_TIMEOUT_MS = 10000;
 
 class ZenithWS
 {
@@ -79,8 +80,8 @@ class ZenithWS
 
 	/// Set up a timer to refresh the token before it expires.
 	/*private*/ auth_setRefresh() {
-		if (this.debug) console.log('[zws:Token expires in ' + this.token.data.expires_in
-			+ ' seconds, setting timer.');
+		if (this.debug) console.log('[zenith] Token expires in ' + this.token.data.expires_in
+			+ ' seconds, setting timer');
 		if (this.tokenTimer) clearTimeout(this.tokenTimer);
 		this.tokenTimer = setTimeout(() => {
 			this.auth_refreshToken();
@@ -151,7 +152,7 @@ class ZenithWS
 			});
 
 			this.ws.on('ping', (data, flags) => {
-				console.log('Received a ping, responding with pong');
+				console.log('[zenith] Received a ping, responding with pong');
 				this.resetPingTimeout();
 				this.ws.pong(data, null, false);
 			});
@@ -162,11 +163,14 @@ class ZenithWS
 
 	/// Disconnect from the WebSocket.
 	disconnect() {
+		if (this.debug) console.log('[zenith] Disconnecting');
 		this.reconnect = false;
 		if (this.pingTimer) clearTimeout(this.pingTimer);
 		this.pingTimer = undefined;
 		if (this.tokenTimer) clearTimeout(this.tokenTimer);
 		this.tokenTimer = undefined;
+		if (this.subscriptionTimer) clearTimeout(this.subscriptionTimer);
+		this.subscriptionTimer = undefined;
 		this.ws.close();
 	}
 
@@ -178,28 +182,30 @@ class ZenithWS
 	ws_onMessage(data, flags) {
 		// Received websocket message
 		let jsonRes = JSON.parse(data);
-		if (this.debug) console.log('\n-- Incoming message --\n', jsonRes, '\n----------------------\n');
+		if (this.debug) console.log('\n-- Incoming Zenith message --\n', jsonRes, '\n----------------------\n');
+
+		let key = null;
 		if (jsonRes.TransactionID) {
 			// Response to a pending 'action' call
-			let d = this.pending[jsonRes.TransactionID];
-			if (d) {
-				// This is a match
-				clearTimeout(d.failTimer);
-				this.pending[jsonRes.TransactionID] = undefined;
-				if (jsonRes.Action == 'Error') {
-					d.reject(jsonRes.Data);
-				} else {
-					d.fulfill(jsonRes.Data);
-				}
-			}
+			key = jsonRes.TransactionID;
 		} else {
 			// No transaction ID, a subscription message
-			let key = this.makeKey(jsonRes);
+			key = this.makeKey(jsonRes);
+		}
 
-			// Ignore messages we didn't subscribe to (which may arrive for a short
-			// time after we unsubscribe)
-			if (!this.subscriptions[key]) return;
-
+		let d = this.pending[key];
+		if (d) {
+			// This is a match
+			clearTimeout(d.failTimer);
+			this.pending[key] = undefined;
+			if ((jsonRes.Action == 'Error') || (jsonRes.Result == 'Error')) {
+				d.reject(jsonRes.Data);
+				return;
+			} else {
+				d.fulfill(jsonRes.Data);
+			}
+		}
+		if (this.subscriptions[key]) {
 			// Call each registered callback for this subscription
 			this.subscriptions[key].forEach(cb => {
 				cb(jsonRes.Data);
@@ -220,6 +226,24 @@ class ZenithWS
 		}, PING_TIMEOUT_MS);
 	}
 
+	/// Check to see if there are any active subscriptions.
+	/**
+	 * If there are, set a timer to avoid the script terminating.  If there are no
+	 * subscriptions then don't set the timer so the script will exit.
+	 */
+	/*private*/ subscriptionPing() {
+		this.subscriptionTimer = setTimeout(() => {
+			if (
+				// Any active subscriptions?
+				(this.subscriptions.length > 0)
+				// Still connected to the server?
+				&& this.pingTimer
+			) {
+				this.subscriptionPing();
+			}
+		}, SUB_PING_TIMEOUT_MS);
+	}
+
 	/// Send a non-subscription message.
 	/**
 	 * @pre Must be connected.
@@ -228,11 +252,13 @@ class ZenithWS
 	 *   On error, Promise is rejected with either WS error or ZenithError.
 	 */
 	z_call(controller, topic, params) {
+		if (this.debug) console.log('[zenith] API call: ' + controller + ':' + topic);
 		return new Promise((fulfill, reject) => {
 			let req = {
 				Controller: controller,
 				Topic: topic,
 				Data: params,
+				Confirm: false,
 				TransactionID: ++this.lastTransactionID,
 				fulfill: fulfill,
 				reject: reject,
@@ -272,6 +298,7 @@ class ZenithWS
 	 *  or can we use the session re-establishment API call?
 	 */
 	z_subscribe(controller, topic, params, cb) {
+		if (this.debug) console.log('[zenith] API subscription: ' + controller + ':' + topic);
 		return new Promise((fulfill, reject) => {
 			if (!cb) {
 				reject(new TypeError('Missing callback function.'));
@@ -281,20 +308,39 @@ class ZenithWS
 				Controller: controller,
 				Topic: topic,
 				Action: 'Sub',
+				Confirm: false,
+				TransactionID: ++this.lastTransactionID,
+				fulfill: fulfill,
+				reject: reject,
 			};
 
 			let key = this.makeKey(req);
 			if (!this.subscriptions[key]) this.subscriptions[key] = [];
 			this.subscriptions[key].push(cb);
 
+			// Set up the subscription timer.
+			this.subscriptionPing();
+
+			this.pending[key] = req;
+
 			try {
 				this.resetPingTimeout();
 				//console.log('[Sub] ' + req.Controller + ':' + req.Topic);
 				this.ws.send(JSON.stringify(req), err => {
 					if (err) reject(err);
+					// Now waiting for response which will be sent to on_ws_message()
 					// Subscribed
-					fulfill();
+					// TODO: Wait for subscription confirmation?
+					//fulfill();
 				});
+
+				// Add a timer so the call fails if we don't get a response in time
+				req.failTimer = setTimeout(() => {
+					// Remove request from pending list
+					this.pending[key] = undefined;
+
+					req.reject(new ZenithError('TIMEOUT', 'No response to subscription request'));
+				}, CALL_TIMEOUT_MS);
 			} catch (e) {
 				reject(e);
 			}
@@ -352,11 +398,23 @@ class ZenithWS
 	 *   Symbol code.
 	 */
 	market_querySecurity(market, code) {
-		console.log(market, code);
 		return this.z_call('Market', 'QuerySecurity', {
 			Market: market,
 			Code: code,
 		});
+	}
+
+	market_querySymbols(market, text, options = {}) {
+		options.Market = market;
+		options.SearchText = text;
+		return this.z_call('Market', 'QuerySymbols', options);
+	}
+
+	/// Zenith API: Cancel an order.
+	trading_cancelOrder(account, order, options = {}) {
+		options.Account = account;
+		options.Order = order;
+		return this.z_call('Trading', 'CancelOrder', options);
 	}
 
 	/// Zenith API: List available trading accounts.
@@ -367,8 +425,21 @@ class ZenithWS
 	/// Zenith API: List available balances.
 	trading_queryBalances(account) {
 		return this.z_call('Trading', 'QueryBalances', {
-			Account: account
+			Account: account,
 		});
+	}
+
+	/// Zenith API: List available balances.
+	trading_queryOrders(account, order = undefined) {
+		return this.z_call('Trading', 'QueryOrders', {
+			Account: account,
+			OrderID: order,
+		});
+	}
+
+	/// Zenith API: Place an order.
+	trading_placeOrder(options) {
+		return this.z_call('Trading', 'PlaceOrder', options);
 	}
 
 	/// Zenith API: Get server info.
