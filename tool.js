@@ -1,11 +1,15 @@
 'use strict';
 
 // Command line tool for interfacing with Zenith
+// Use -h for help.
+
 var parseArgs = require('minimist');
 
 let Zenith = require('./index.js');
 
 let config = require('./test-config.js');
+
+let idExchange = 'ASX[Demo]'; // overridden with -e
 
 class Actions
 {
@@ -118,18 +122,29 @@ class Actions
 	}
 };
 
-let args = parseArgs(process.argv.slice(2), {boolean: ['d', 'h']});
+let args = parseArgs(process.argv.slice(2), {
+	boolean: ['d', 'h'],
+	string: ['e'],
+});
 
 if (args.h || (args._.length == 0)) { // help
 	console.log('Command line interface to Zenith API.\n')
-	console.log('Usage: node tool.js action1 param1 action2 ...\n');
-	console.log('Actions:');
+	console.log('Usage: node tool.js [options] action1 param1 action2 ...\n');
+	console.log('Options:');
+	console.log('  -d\tEnable debug mode (show more output)');
+	console.log('  -e\tSet exchange to use, e.g. -e ASX[Demo]');
+	console.log('\nActions:');
 	Object.getOwnPropertyNames(Actions.prototype).sort().forEach(d => {
 		if (d == 'constructor') return;
 		console.log('  ' + d + '\t' + Actions.prototype[d]().join(' '));
 	});
 	process.exit(0);
 }
+
+if (args.e) {
+	idExchange = args.e;
+}
+console.log('Using exchange "' + idExchange + '"');
 
 let zenith = new Zenith.WebSockets(config);
 if (args.d) zenith.debug = true;
