@@ -64,6 +64,7 @@ class Actions
 						return;
 					}
 					orders.forEach(order => {
+						if (this.zenith.debug) console.log(order);
 						/*
 						{ O: 'A',
 							Order:
@@ -101,6 +102,8 @@ class Actions
 							+ ' side=' + data.Details.Side
 							+ ' sym=' + data.Details.Code
 							+ ' quantity=' + data.Details.Quantity
+							+ ' limit=' + (data.Details.LimitPrice || 'N/A')
+							+ ' valid=' + data.Details.Validity
 						);
 					});
 				});
