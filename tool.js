@@ -106,6 +106,10 @@ class Actions
 				.then(result => {
 					if (result.Result == 'Invalid') {
 						console.log('Incorrect information supplied: ' + result.Errors.join(' '));
+					} else if (result.Result == 'Rejected') {
+						console.log('Order rejected based on: ' + result.Errors.join(' '));
+					} else if (result.Result == 'Error') {
+						console.log('Error in parameters: ' + result.Errors.join(' '));
 					} else {
 						console.log(result);
 					}
