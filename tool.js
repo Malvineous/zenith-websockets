@@ -11,6 +11,22 @@ let config = require('./test-config.js');
 
 let idExchange = 'ASX[Demo]'; // overridden with -e
 
+function checkError(result, action) {
+	if (result.Result == 'Invalid') {
+		console.log(action + ' invalid due to incorrect information supplied: '
+			+ result.Errors.join(' '));
+	} else if (result.Result == 'Rejected') {
+		console.log(action + ' rejected based on: ' + result.Errors.join(' '));
+	} else if (result.Result == 'Error') {
+		console.log(action + ' failed due to parameters: '
+			+ result.Errors.join(' '));
+	} else {
+		return false; // no error
+	}
+	return true; // error
+}
+
+
 class Actions
 {
 	constructor(zenith) {
@@ -108,15 +124,8 @@ class Actions
 			console.log('Cancelling order: account=' + idAccount + ' order=' + idOrder);
 			return this.zenith.trading_cancelOrder(idAccount, idOrder)
 				.then(result => {
-					if (result.Result == 'Invalid') {
-						console.log('Incorrect information supplied: ' + result.Errors.join(' '));
-					} else if (result.Result == 'Rejected') {
-						console.log('Order rejected based on: ' + result.Errors.join(' '));
-					} else if (result.Result == 'Error') {
-						console.log('Error in parameters: ' + result.Errors.join(' '));
-					} else {
-						console.log(result);
-					}
+					if (checkError(result, 'Order cancellation')) return;
+					console.log(result);
 				});
 		});
 	}
@@ -130,22 +139,15 @@ class Actions
 			console.log('Querying markets:');
 			return this.zenith.market_queryMarkets()
 				.then(result => {
-					if (result.Result == 'Invalid') {
-						console.log('Incorrect information supplied: ' + result.Errors.join(' '));
-					} else if (result.Result == 'Rejected') {
-						console.log('Order rejected based on: ' + result.Errors.join(' '));
-					} else if (result.Result == 'Error') {
-						console.log('Error in parameters: ' + result.Errors.join(' '));
-					} else {
-						result.forEach(market => {
-							console.log(market.Code
-								+ ' feed=' + market.Feed
-								+ ' status=' + market.Status);
-							market.States.forEach(state => {
-								console.log(' * ' + state.Name + ' status=' + state.Status);
-							});
+					if (checkError(result, 'Market query')) return;
+					result.forEach(market => {
+						console.log(market.Code
+							+ ' feed=' + market.Feed
+							+ ' status=' + market.Status);
+						market.States.forEach(state => {
+							console.log(' * ' + state.Name + ' status=' + state.Status);
 						});
-					}
+					});
 				});
 		});
 	}
@@ -163,15 +165,8 @@ class Actions
 			console.log('Querying security: stock=' + stock);
 			return this.zenith.market_querySecurity(idExchange, stock)
 				.then(result => {
-					if (result.Result == 'Invalid') {
-						console.log('Incorrect information supplied: ' + result.Errors.join(' '));
-					} else if (result.Result == 'Rejected') {
-						console.log('Order rejected based on: ' + result.Errors.join(' '));
-					} else if (result.Result == 'Error') {
-						console.log('Error in parameters: ' + result.Errors.join(' '));
-					} else {
-						console.log(result);
-					}
+					if (checkError(result, 'Security query')) return;
+					console.log(result);
 				});
 		});
 	}
