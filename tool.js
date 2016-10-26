@@ -120,6 +120,61 @@ class Actions
 				});
 		});
 	}
+
+	query_markets(promise, params) {
+		if (!promise) {
+			return [];
+		}
+
+		return promise.then(() => {
+			console.log('Querying markets:');
+			return this.zenith.market_queryMarkets()
+				.then(result => {
+					if (result.Result == 'Invalid') {
+						console.log('Incorrect information supplied: ' + result.Errors.join(' '));
+					} else if (result.Result == 'Rejected') {
+						console.log('Order rejected based on: ' + result.Errors.join(' '));
+					} else if (result.Result == 'Error') {
+						console.log('Error in parameters: ' + result.Errors.join(' '));
+					} else {
+						result.forEach(market => {
+							console.log(market.Code
+								+ ' feed=' + market.Feed
+								+ ' status=' + market.Status);
+							market.States.forEach(state => {
+								console.log(' * ' + state.Name + ' status=' + state.Status);
+							});
+						});
+					}
+				});
+		});
+	}
+
+	query_security(promise, params) {
+		if (!promise) {
+			return ['stock'];
+		}
+
+		let stock = params.shift();
+		if (!stock) {
+			throw Error('Need stock symbol to query.');
+		}
+		return promise.then(() => {
+			console.log('Querying security: stock=' + stock);
+			return this.zenith.market_querySecurity(idExchange, stock)
+				.then(result => {
+					if (result.Result == 'Invalid') {
+						console.log('Incorrect information supplied: ' + result.Errors.join(' '));
+					} else if (result.Result == 'Rejected') {
+						console.log('Order rejected based on: ' + result.Errors.join(' '));
+					} else if (result.Result == 'Error') {
+						console.log('Error in parameters: ' + result.Errors.join(' '));
+					} else {
+						console.log(result);
+					}
+				});
+		});
+	}
 };
 
 let args = parseArgs(process.argv.slice(2), {
