@@ -1,6 +1,6 @@
 {
   "name": "zenith-websockets",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Interface to OpenMarkets/Paritech Zenith WebSockets API",
   "main": "index.js",
   "scripts": {
@@ -21,7 +21,9 @@
   "homepage": "https://github.com/Malvineous/zenith-websockets#readme",
   "dependencies": {
     "client-oauth2": "^3.0.1",
-    "minimist": "^1.2.0",
     "ws": "^1.1.1"
+  },
+  "devDependencies": {
+    "minimist": "^1.2.0"
   }
 }
