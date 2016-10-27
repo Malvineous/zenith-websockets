@@ -240,7 +240,7 @@ class Actions
 			throw Error('Need quantity to buy.');
 		}
 		return promise.then(() => {
-			console.log('Placing order: account=' + idAccount
+			console.log('Buy equity: account=' + idAccount
 				+ ' market=' + market
 				+ ' stock=' + stock
 				+ ' quantity=' + quantity
