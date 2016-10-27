@@ -379,14 +379,23 @@ class ZenithWS
 		return this.z_subscribe('Market', 'Markets', undefined, cb);
 	}
 
-	/// Zenith API: Subscribe to market state changes (market_queryMarkets).
+	/// Zenith API: Subscribe to market state changes.
 	subscribe_market_security(market, symbol, cb) {
 		return this.z_subscribe('Market', 'Security!' + symbol + '.' + market, undefined, cb);
 	}
 
-	/// Zenith API: Subscribe to market state changes (market_queryMarkets).
+	/// Zenith API: Subscribe to live trades notifications.
 	sub_market_trades(market, symbol, cb) {
-		return this.z_subscribe('Market', 'Trades!' + symbol + '.' + market, undefined, cb);
+		return this.z_subscribe('Market', 'Trades!' + symbol + '.' + market,
+			undefined, d => {
+				// Convert any string dates into JS Date objects
+				d.forEach(trade => {
+					if (trade.Trade && trade.Trade.Time) {
+						trade.Trade.Time = new Date(trade.Trade.Time);
+					}
+				});
+				cb(d);
+			});
 	}
 
 	/// Zenith API: Retrieve the current state of a security.
