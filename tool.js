@@ -267,6 +267,56 @@ class Actions
 			});
 		});
 	}
+
+	sell_equity(promise, params) {
+		if (!promise) {
+			return ['account-id', 'market', 'stock', 'quantity'];
+		}
+
+		let idAccount = params.shift();
+		if (!idAccount) {
+			throw Error('Need account ID to place order through.');
+		}
+		let market = params.shift();
+		if (!market) {
+			throw Error('Need market to sell through.');
+		}
+		let stock = params.shift();
+		if (!stock) {
+			throw Error('Need stock to sell.');
+		}
+		let quantity = params.shift();
+		if (!quantity) {
+			throw Error('Need quantity to sell.');
+		}
+		return promise.then(() => {
+			console.log('Sell equity: account=' + idAccount
+				+ ' market=' + market
+				+ ' stock=' + stock
+				+ ' quantity=' + quantity
+			);
+			return this.zenith.trading_placeOrder({
+				Account: idAccount,
+				Details: {
+					Exchange: idExchange,
+					Code: stock,
+					Side: 'Ask',
+					Style: 'Equity',
+					Type: 'Best',
+					Quantity: quantity,
+					Validity: 'UntilCancel',
+				},
+				Route: {
+					Algorithm: 'Market',
+					Market: market,
+				},
+			})
+			.then(result => {
+				if (checkError(result, 'Equity purchase')) return;
+				console.log(result);
+			});
+		});
+	}
 };
 
 let args = parseArgs(process.argv.slice(2), {
