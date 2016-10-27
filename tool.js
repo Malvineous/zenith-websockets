@@ -268,6 +268,54 @@ class Actions
 		});
 	}
 
+	monitor(promise, params) {
+		if (!promise) {
+			return ['market', 'stock'];
+		}
+
+		let market = params.shift();
+		if (!market) {
+			throw Error('Need market where stock is located.');
+		}
+		let stock = params.shift();
+		if (!stock) {
+			throw Error('Need stock to monitor.');
+		}
+		return promise.then(() => {
+			return zenith.subscribe_market_security(market, stock, d => {
+				console.log('Security update: last=' + d.Last
+					+ ' trade_count=' + d.NumberOfTrades
+					+ ' volume=' + d.Volume
+					+ ' value_traded=' + d.ValueTraded
+					+ ' bid_count=' + d.BidCount
+					+ ' bid_quantity=' + d.BidQuantity
+				);
+			});
+		})
+		.then(() => {
+			return zenith.sub_market_trades(market, stock, updates => {
+				updates.forEach(d => {
+					if (d.O == 'I') {
+						console.log('New trade: id=' + d.ID);
+						return;
+					}
+					if (!d.Trade) {
+						console.log('Unknown trade update:', d);
+						return;
+					}
+					console.log('Trade update: update_type=' + d.O
+						+ ' id=' + d.Trade.ID
+						+ ' price=' + d.Trade.Price
+						+ ' quantity=' + d.Trade.Quantity
+						+ ' time=' + d.Trade.Time
+						+ ' trend=' + d.Trade.Trend
+						+ ' side=' + d.Trade.Ask
+					);
+				});
+			});
+		});
+	}
+
 	sell_equity(promise, params) {
 		if (!promise) {
 			return ['account-id', 'market', 'stock', 'quantity'];
@@ -346,6 +394,8 @@ console.log('Using exchange "' + idExchange + '"');
 let zenith = new Zenith.WebSockets(config);
 if (args.d) zenith.debug = true;
 
+let shouldExit = true;
+
 zenith.connect().then(() => {
 	let p = Promise.resolve();
 
@@ -360,6 +410,7 @@ zenith.connect().then(() => {
 		}
 		try {
 			p = a[action](p, actions);
+			if (action == 'monitor') shouldExit = false;
 		} catch (e) {
 			// Immediate error (e.g. missing params)
 			console.log('Use: ' + action + ' ' + a[action]().join(' ') + '\n');
@@ -369,7 +420,7 @@ zenith.connect().then(() => {
 		}
 	}
 	p.then(() => {
-		zenith.disconnect();
+		if (shouldExit) zenith.disconnect();
 	}).catch(err => {
 		console.log('Error:', err);
 		zenith.disconnect();
