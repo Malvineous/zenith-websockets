@@ -282,7 +282,7 @@ class Actions
 			throw Error('Need stock to monitor.');
 		}
 		return promise.then(() => {
-			return zenith.subscribe_market_security(market, stock, d => {
+			return zenith.sub_market_security(market, stock, d => {
 				console.log('Security update: last=' + d.Last
 					+ ' trade_count=' + d.NumberOfTrades
 					+ ' volume=' + d.Volume

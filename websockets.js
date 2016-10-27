@@ -375,12 +375,12 @@ class ZenithWS
 	}
 
 	/// Zenith API: Subscribe to market state changes (market_queryMarkets).
-	subscribe_market_markets(cb) {
+	sub_market_markets(cb) {
 		return this.z_subscribe('Market', 'Markets', undefined, cb);
 	}
 
 	/// Zenith API: Subscribe to market state changes.
-	subscribe_market_security(market, symbol, cb) {
+	sub_market_security(market, symbol, cb) {
 		return this.z_subscribe('Market', 'Security!' + symbol + '.' + market, undefined, cb);
 	}
 
