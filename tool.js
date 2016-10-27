@@ -69,7 +69,7 @@ class Actions
 						{ O: 'A',
 							Order:
 							{ ID: '00000000-0000-0000-0010-5808838c0071',
-								Account: '8200289[Demo]',
+								Account: '12345[Demo]',
 								Style: 'Equity',
 								ExternalID: '30A3C91_2',
 								Status: 'Rejected',
@@ -129,6 +129,50 @@ class Actions
 				.then(result => {
 					if (checkError(result, 'Order cancellation')) return;
 					console.log(result);
+				});
+		});
+	}
+
+	query_holdings(promise, params) {
+		if (!promise) {
+			return ['account-id'];
+		}
+
+		let idAccount = params.shift();
+		if (!idAccount) {
+			throw Error('Need account ID to list holdings.');
+		}
+		return promise.then(() => {
+			return this.zenith.trading_queryHoldings(idAccount)
+				.then(holdings => {
+					if (holdings.length == 0) {
+						console.log('no current holdings');
+						return;
+					}
+					holdings.forEach(holding => {
+						if (this.zenith.debug) console.log(holding);
+						/*
+						{ O: 'A',
+							Holding:
+							{ Exchange: 'ASX[Demo]',
+								Code: 'BHP',
+								Account: '12345[Demo]',
+								Style: 'Equity',
+								Cost: 1973,
+								Currency: 'AUD',
+								TotalQuantity: 100,
+								TotalAvailable: 100,
+								AveragePrice: 19.73 } }
+						 */
+						let data = holding.Holding;
+						console.log('holding: exchange=' + data.Exchange
+							+ ' type=' + data.Style
+							+ ' sym=' + data.Code
+							+ ' quantity=' + data.TotalQuantity
+							+ ' price=' + data.AveragePrice
+							+ ' cost=' + data.Cost
+						);
+					});
 				});
 		});
 	}

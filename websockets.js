@@ -429,7 +429,14 @@ class ZenithWS
 		});
 	}
 
-	/// Zenith API: List available balances.
+	/// Zenith API: List owned stocks.
+	trading_queryHoldings(account) {
+		return this.z_call('Trading', 'QueryHoldings', {
+			Account: account,
+		});
+	}
+
+	/// Zenith API: List unfulfilled and recent orders.
 	trading_queryOrders(account, order = undefined) {
 		return this.z_call('Trading', 'QueryOrders', {
 			Account: account,
