@@ -260,20 +260,23 @@ class ZenithWS
 		if (this.debug) console.log('[zenith] API call: ' + controller + ':' + topic);
 		return new Promise((fulfill, reject) => {
 			let req = {
-				Controller: controller,
-				Topic: topic,
-				Data: params,
-				Confirm: false,
-				TransactionID: ++this.lastTransactionID,
+				data: {
+					Controller: controller,
+					Topic: topic,
+					Data: params,
+					Confirm: false,
+					TransactionID: ++this.lastTransactionID,
+				},
 				fulfill: fulfill,
 				reject: reject,
 			};
-			this.pending[req.TransactionID] = req;
+			this.pending[req.data.TransactionID] = req;
+			if (this.debug) console.log('\n-- Outgoing request --\n', req.data, '\n---- end outgoing ----\n');
 			//console.log('[' + req.TransactionID + '] ' + req.Controller + ':' + req.Topic);
 
 			try {
 				this.resetPingTimeout();
-				this.ws.send(JSON.stringify(req), err => {
+				this.ws.send(JSON.stringify(req.data), err => {
 					if (err) reject(err);
 					// Now waiting for response which will be sent to on_ws_message()
 				});
@@ -302,7 +305,7 @@ class ZenithWS
 	 * @todo What happens if the connection drops out?  Do we need to resubscribe
 	 *  or can we use the session re-establishment API call?
 	 */
-	z_subscribe(controller, topic, params, cb) {
+	z_subscribe(controller, topic, cb) {
 		if (this.debug) console.log('[zenith] API subscription: ' + controller + ':' + topic);
 		return new Promise((fulfill, reject) => {
 			if (!cb) {
@@ -310,16 +313,18 @@ class ZenithWS
 				return;
 			}
 			let req = {
-				Controller: controller,
-				Topic: topic,
-				Action: 'Sub',
-				Confirm: false,
-				TransactionID: ++this.lastTransactionID,
+				data: {
+					Controller: controller,
+					Topic: topic,
+					Action: 'Sub',
+					Confirm: false,
+					TransactionID: ++this.lastTransactionID,
+				},
 				fulfill: fulfill,
 				reject: reject,
 			};
 
-			let key = this.makeKey(req);
+			let key = this.makeKey(req.data);
 			if (!this.subscriptions[key]) this.subscriptions[key] = [];
 			this.subscriptions[key].push(cb);
 
@@ -331,7 +336,7 @@ class ZenithWS
 			try {
 				this.resetPingTimeout();
 				//console.log('[Sub] ' + req.Controller + ':' + req.Topic);
-				this.ws.send(JSON.stringify(req), err => {
+				this.ws.send(JSON.stringify(req.data), err => {
 					if (err) reject(err);
 					// Now waiting for response which will be sent to on_ws_message()
 					// Subscribed
@@ -381,18 +386,17 @@ class ZenithWS
 
 	/// Zenith API: Subscribe to market state changes (market_queryMarkets).
 	sub_market_markets(cb) {
-		return this.z_subscribe('Market', 'Markets', undefined, cb);
+		return this.z_subscribe('Market', 'Markets', cb);
 	}
 
 	/// Zenith API: Subscribe to market state changes.
 	sub_market_security(market, symbol, cb) {
-		return this.z_subscribe('Market', 'Security!' + symbol + '.' + market, undefined, cb);
+		return this.z_subscribe('Market', 'Security!' + symbol + '.' + market, cb);
 	}
 
 	/// Zenith API: Subscribe to live trades notifications.
 	sub_market_trades(market, symbol, cb) {
-		return this.z_subscribe('Market', 'Trades!' + symbol + '.' + market,
-			undefined, d => {
+		return this.z_subscribe('Market', 'Trades!' + symbol + '.' + market, d => {
 				// Convert any string dates into JS Date objects
 				d.forEach(trade => {
 					if (trade.Trade && trade.Trade.Time) {
