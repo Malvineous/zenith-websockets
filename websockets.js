@@ -157,7 +157,7 @@ class ZenithWS
 			});
 
 			this.ws.on('ping', (data, flags) => {
-				console.log('[zenith] Received a ping, responding with pong');
+				if (this.debug) console.log('[zenith] Received a ping, responding with pong');
 				this.resetPingTimeout();
 				this.ws.pong(data, null, false);
 			});
@@ -187,7 +187,7 @@ class ZenithWS
 	ws_onMessage(data, flags) {
 		// Received websocket message
 		let jsonRes = JSON.parse(data);
-		if (this.debug) console.log('\n-- Incoming Zenith message --\n', jsonRes, '\n----------------------\n');
+		if (this.debug) console.log('\n-- Incoming Zenith message --\n', jsonRes, '\n---- end incoming ----\n');
 
 		let key = null;
 		if (jsonRes.TransactionID) {
@@ -332,6 +332,7 @@ class ZenithWS
 			this.subscriptionPing();
 
 			this.pending[key] = req;
+			if (this.debug) console.log('\n-- Outgoing request --\n', req.data, '\n---- end outgoing ----\n');
 
 			try {
 				this.resetPingTimeout();
