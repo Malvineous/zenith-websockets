@@ -29,6 +29,7 @@ class ZenithWS
 		this.lastTransactionID = 0;
 		this.pending = {}; // API calls waiting for a server response
 		this.subscriptions = []; // Things we want unsolicited notifications about
+		this.fnDisconnect = null; // callback on disconnection
 	}
 
 	/// Authenticate with OAuth and set this.token.
@@ -99,7 +100,8 @@ class ZenithWS
 	}
 
 	/// Authenticate and set up the WebSocket connection.
-	connect() {
+	connect(fnDisconnect) {
+		this.fnDisconnect = fnDisconnect;
 		return this.auth()
 			.then(this.connect_ws.bind(this))
 		;
@@ -145,10 +147,13 @@ class ZenithWS
 			});
 
 			this.ws.on('close', () => {
-				if (!this.reconnect) return; // intentional disconnection
-				console.log('TODO: Reconnect, got disconnected');
 				// Note this happens on a connection error (like connection refused) as
 				// well as on intentional disconnection.
+				if (!this.reconnect) return; // intentional disconnection
+				if (this.debug) console.log('[zenith] Disconnected, notifying callback');
+				if (this.fnDisconnect) fnDisconnect();
+				//console.log('[zenith] Disconnected, reconnecting...');
+				//this.try_reconnect(3);
 			});
 
 			this.ws.on('ping', (data, flags) => {
