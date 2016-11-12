@@ -400,11 +400,15 @@ class ZenithWS
 	sub_market_trades(market, symbol, cb) {
 		return this.z_subscribe('Market', 'Trades!' + symbol + '.' + market, d => {
 				// Convert any string dates into JS Date objects
-				d.forEach(trade => {
-					if (trade.Trade && trade.Trade.Time) {
-						trade.Trade.Time = new Date(trade.Trade.Time);
-					}
-				});
+				if (d instanceof Array) {
+					d.forEach(trade => {
+						if (trade.Trade && trade.Trade.Time) {
+							// Some trades actually come in as "0001-01-01T00:00:00+00:00",
+							// these convert OK but seem weird all the same.
+							trade.Trade.Time = new Date(trade.Trade.Time);
+						}
+					});
+				}
 				cb(d);
 			});
 	}
