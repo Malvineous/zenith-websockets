@@ -191,9 +191,15 @@ class Actions
 						console.log(market.Code
 							+ ' feed=' + market.Feed
 							+ ' status=' + market.Status);
-						market.States.forEach(state => {
-							console.log(' * ' + state.Name + ' status=' + state.Status);
-						});
+						if (market.Feed == 'Initialising') {
+							console.log(' * No data, feed is initialising');
+						} else if (market.Status) {
+							market.States.forEach(state => {
+								console.log(' * ' + state.Name + ' status=' + state.Status);
+							});
+						} else {
+							console.log(' * Missing market status:', market);
+						}
 					});
 				});
 		});
