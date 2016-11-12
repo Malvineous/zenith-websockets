@@ -226,6 +226,7 @@ class ZenithWS
 	 */
 	/*private*/ resetPingTimeout() {
 		if (this.pingTimer) clearTimeout(this.pingTimer);
+		if (!this.connected) return;
 		this.pingTimer = setTimeout(() => {
 			this.ws.ping();
 		}, PING_TIMEOUT_MS);
